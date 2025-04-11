@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import re
 import argparse
-
+from pathlib import Path
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="Process IF CSV files to identify each markers")
@@ -24,8 +24,8 @@ def write_to_csv(df, output_path):
     return 0
 
 
-def process_csv(file):
-    IF_df = pd.read_csv(file)
+def split_csv(file):
+    IF_df = pd.read_csv(Path(file))
 
     cluster = IF_df[['Cluster']]
     markers_list = re.split(r'[-+]+',cluster.iloc[0,0])
@@ -41,19 +41,10 @@ def process_csv(file):
 
     IF_df = IF_df.drop('Cluster',axis=1)
     
-    output_dir = '../data/test_data/csv_data/IF_preprocessed/'
+    output_dir = './data/true_data//IF_anonymized_preprocessed/IF_C1_split_merged'
     base_name = os.path.basename(file)
     output_path = os.path.join(output_dir,base_name)
 
     write_to_csv(IF_df,output_path=output_path)
 
-def main():
-    
-    args = get_arguments()
-
-    if args.file:
-        print('We process file: {}'.format(args.file))
-        process_csv(args.file)
-
-if (__name__== "__main__"):
-    main()
+    print("[SPLIT]")

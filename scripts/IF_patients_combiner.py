@@ -5,9 +5,7 @@ import numpy as np
 import argparse
 import glob
 
-def patient_files():
-    directory = './data/true_data/IF_anonymized_preprocessed/IF_C1' # à changer pour toi
-
+def patient_files(directory):
 
     patient_files = {}
 
@@ -47,13 +45,10 @@ def process_csv(patient_files):
     for i, patient in enumerate(patient_files):
         # merged df from same patient
         patient_df = load_merge_df_from_files(patient_files[patient])
-        print("[{}] Patient {}: files merged".format(i+1,patient))
+        print("[MERGE] Patient {}: files merged".format(i+1,patient))
 
         output_dir = './data/true_data/IF_anonymized_preprocessed/IF_C1_merged' # à changer pour toi
-        base_name = patient + "_merged"
+        base_name = patient + "_merged.csv"
         output_path = os.path.join(output_dir,base_name)
         write_to_csv(patient_df,output_path)
         print("--> Patient {}: CSV created !".format(patient)) 
-        
-
-process_csv(patient_files())
