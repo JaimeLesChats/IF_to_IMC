@@ -19,8 +19,8 @@ def write_to_csv(df, output_path):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    df.to_csv(output_path,index = False) 
-       # Setting index=False prevents saving the index column in the csv file
+    df.to_csv(output_path,index = False) # Setting index=False prevents saving the index column in the csv file
+    
     return 0
 
 
