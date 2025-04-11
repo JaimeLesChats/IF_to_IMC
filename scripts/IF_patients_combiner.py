@@ -6,7 +6,7 @@ import argparse
 import glob
 
 def patient_files():
-    directory = './data/true_data/acquired_csv_files'
+    directory = './data/true_data/IF_anonymized_preprocessed/IF_C1' # à changer pour toi
 
 
     patient_files = {}
@@ -22,17 +22,11 @@ def patient_files():
     # Completed dictionnary in patient_files
     return patient_files
 
-def reindex_df(df,idx):
-    return df.loc[1:,df.columns[0]].map(lambda x : x+idx)
-
 def load_merge_df_from_files(list_files):
-    idx = 0
     df = pd.DataFrame()
     for i,file in enumerate(list_files):
         read_df = pd.read_csv(file)
-        read_df.loc[1:,read_df.columns[0]] = reindex_df(read_df,idx)
         df = pd.concat([df,read_df],ignore_index=True)
-        idx += len(read_df)
 
     df.columns.values[0]= "CellID"
 
@@ -55,7 +49,7 @@ def process_csv(patient_files):
         patient_df = load_merge_df_from_files(patient_files[patient])
         print("[{}] Patient {}: files merged".format(i+1,patient))
 
-        output_dir = './data/true_data/IMC_merged_per_patients'
+        output_dir = './data/true_data/IF_anonymized_preprocessed/IF_C1_merged' # à changer pour toi
         base_name = patient + "_merged"
         output_path = os.path.join(output_dir,base_name)
         write_to_csv(patient_df,output_path)
