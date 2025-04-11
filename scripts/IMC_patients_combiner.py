@@ -24,7 +24,7 @@ def patient_files():
 def reindex_df(df,idx):
     return df.loc[1:,df.columns[0]].map(lambda x : x+idx)
 
-def load_full_df_from_files(list_files):
+def load_merge_df_from_files(list_files):
     idx = 0
     df = pd.DataFrame()
     for i,file in enumerate(list_files):
@@ -33,19 +33,32 @@ def load_full_df_from_files(list_files):
         df = pd.concat([df,read_df],ignore_index=True)
         idx += len(read_df)
 
-
     df.columns.values[0]= "CellID"
 
     return df
 
-        
+def write_to_csv(df, output_path):
 
-def merge_patient_files(patient_files):
+    directory = os.path.dirname(output_path)
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    df.to_csv(output_path,index = False) 
+       # Setting index=False prevents saving the index column in the csv file
+    return 0       
+
+def process_csv(patient_files):
     for i, patient in enumerate(patient_files):
         # merged df from same patient
-        patient_df = load_full_df_from_files(patient_files[patient])
-        print("[{}] Patient {} files merged".format(i+1,patient))
-    
+        patient_df = load_merge_df_from_files(patient_files[patient])
+        print("[{}] Patient {}: files merged".format(i+1,patient))
+
+        output_dir = './data/true_data/IMC_merged_per_patients'
+        base_name = patient + "_merged"
+        output_path = os.path.join(output_dir,base_name)
+        write_to_csv(patient_df,output_path)
+        print("--> Patient {}: CSV created !".format(patient)) 
         
 
-merge_patient_files(patient_files())
+process_csv(patient_files())
