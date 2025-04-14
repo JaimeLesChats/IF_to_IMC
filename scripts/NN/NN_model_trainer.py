@@ -85,7 +85,8 @@ def load_nn(model, optimizer, nn_path):
 
 def train(X_train,Y_train,model, optimizer, loss_f, epochs_done, epochs = 50,):
 
-    loop = tqdm.tqdm(range(epochs_done+1,epochs_done+epochs+1))
+    loop = tqdm.tqdm(range(epochs_done+1,epochs_done+epochs+1),
+                     ncols=100, colour='green', desc='Training ... ', )
 
     for epoch in loop:
         model.train()
@@ -131,7 +132,7 @@ def main():
 
     #Training parameters
     #batch_size = 16
-    lr = 0.01 # Karpathy constant 3e-4
+    lr = 0.05 # Karpathy constant 3e-4
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = SimpleNN(nb_in,nb_out).to(device)
