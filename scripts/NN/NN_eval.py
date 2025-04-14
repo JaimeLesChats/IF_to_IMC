@@ -16,17 +16,12 @@ import tqdm
 
 import NN_model_trainer as mod
 
-nb_in, nb_out = 1, 1
-lr = 0.1
-
 path_trained_models = Path('./scripts/NN/nn_checkpoints/')
 path_file =  mod.most_trained_path(path_trained_models)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = mod.SimpleNN(nb_in,nb_out).to(device)
-optimizer = optim.Adam(model.parameters(), lr = lr)
-model, _,_ = mod.load_nn(model,optimizer,path_file)
 
+model, _,_ = mod.load_nn(path_file)
 
 model.eval()
 x_test = torch.tensor([[100.0], [-50.0], [1000.0]])

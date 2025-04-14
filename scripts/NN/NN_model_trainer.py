@@ -20,6 +20,9 @@ class SimpleNN(nn.Module):
     def __init__(self, nb_in, nb_out, hidden_dim=1000):
         super().__init__()
 
+        self.input_dim = nb_in
+        self.output_dim = nb_out
+
         self.in_to_hidden1 = nn.Linear(nb_in,hidden_dim)
         self.hidden1_to_hidden2 = nn.Linear(hidden_dim,hidden_dim)
         self.hidden2_to_out = nn.Linear(hidden_dim,nb_out)
@@ -59,7 +62,10 @@ def create_checkpoint(model, optimizer, epochs):
      checkpoint = {'epochs' : epochs,
                    'model_state_dict' : model.state_dict(),
                    'optimizer_state_dict' : optimizer.state_dict(),
-                   'loss' : None}
+                   'loss' : None,
+                   'lr' : optimizer.param_groups[0]['lr'],
+                   'input_dim' : model.input_dim,
+                   'output_dim' : model.output_dim}
      
      return checkpoint
 
@@ -74,16 +80,21 @@ def save_nn(checkpoint):
 
     torch.save(checkpoint,nn_path)
 
-def load_nn(model, optimizer, nn_path):
+def load_nn(nn_path, device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     checkpoint = torch.load(nn_path)
 
+    input_dim = checkpoint['input_dim']
+    output_dim = checkpoint['output_dim']
+
+    model = SimpleNN(input_dim,output_dim).to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
+    optimizer = optim.Adam(model.parameters(), lr = checkpoint['lr']) 
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     return model, optimizer, checkpoint['epochs']
 
-def train(X_train,Y_train,model, optimizer, loss_f, epochs_done, epochs = 50,):
+def train(X_train,Y_train,model, optimizer, epochs_done, epochs = 50, loss_f = nn.MSELoss(reduction = "sum")):
 
     loop = tqdm.tqdm(range(epochs_done+1,epochs_done+epochs+1),
                      ncols=100, colour='green', desc='Training ... ', )
@@ -125,32 +136,32 @@ def get_arguments():
 def main(): 
 
     args = get_arguments()
-        
-    #number of markers 
-    nb_in = 1
-    nb_out = 1
 
-    #Training parameters
-    #batch_size = 16
-    lr = 0.2 # Karpathy constant 3e-4
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = SimpleNN(nb_in,nb_out).to(device)
-    optimizer = optim.Adam(model.parameters(), lr = lr)
-    loss_f = nn.MSELoss(reduction = "sum")
-
-    path_trained_models = Path('./scripts/NN/nn_checkpoints/')
+    loss_f = loss_f = nn.MSELoss(reduction = "sum")
 
     # Bash arguments
     if args.n:
+        #Training parameters
+        #batch_size = 16
+        nb_in = 1
+        nb_out = 1
+        lr = 0.01 # Karpathy constant 3e-4
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        model = SimpleNN(nb_in,nb_out).to(device)
+        optimizer = optim.Adam(model.parameters(), lr = lr)
         epochs_done = 0
+
     else:
+        path_trained_models = Path('./scripts/NN/nn_checkpoints/')
+
         if args.file:
             path_file = path_trained_models + args.file
-            model, optimizer, epochs_done = load_nn(model,optimizer,path_file)
+            model, optimizer, epochs_done = load_nn(path_file)
         else:
              path_file = most_trained_path(path_trained_models)
-             model, optimizer, epochs_done = load_nn(model,optimizer,path_file)
+             model, optimizer, epochs_done = load_nn(path_file)
     
     if args.ep:
         n_epochs = int(args.ep)
@@ -158,7 +169,7 @@ def main():
         n_epochs = 50
 
     
-    checkpoint = train(X_test,Y_test,model,optimizer,loss_f,epochs_done,n_epochs)
+    checkpoint = train(X_test,Y_test,model,optimizer,epochs_done,n_epochs,loss_f=loss_f)
     save_nn(checkpoint)
 
 if (__name__== "__main__"):
