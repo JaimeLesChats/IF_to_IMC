@@ -56,7 +56,7 @@ def process_csv(patient_files):
         print("[{}] Patient {}: files merged".format(i+1,patient))
 
         output_dir = './data/true_data/IMC_merged_per_patients'
-        base_name = patient + "_merged"
+        base_name = patient + "_merged.csv"
         output_path = os.path.join(output_dir,base_name)
         write_to_csv(patient_df,output_path)
         print("--> Patient {}: CSV created !".format(patient)) 
