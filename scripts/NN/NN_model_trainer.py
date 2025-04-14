@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from pathlib import Path
+import argparse
 
 import torch
 import torch.nn as nn
@@ -102,23 +103,54 @@ def train(X_train,Y_train,model, optimizer, loss_f, epochs_done, epochs = 50,):
     checkpoint = create_checkpoint(model,optimizer,epochs_done+epochs)
     return checkpoint
 
-#number of markers 
-nb_in = 1
-nb_out = 1
 
-#Training parameters
-n_epochs = 500
-batch_size = 16
-lr = 0.01 # Karpathy constant 3e-4
+def get_arguments():
+    parser = argparse.ArgumentParser(description="Process IF CSV files to identify each markers")
+    parser.add_argument('--m', type = str, help = "Fichier contenant le model pré-entrainé")
+    parser.add_argument('--ep', type = str, help = "Nombre d'époques")
+    parser.add_argument('-p', action= 'store_true', help = "test")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = SimpleNN(nb_in,nb_out).to(device)
-optimizer = optim.Adam(model.parameters(), lr = lr)
-loss_f = nn.MSELoss(reduction = "sum")
+    args = parser.parse_args()
 
-if True:
-    path = './nn_checkpoints/nn_100epochs.pth'
-    model, optimizer, epochs_done = load_nn(model,optimizer,path)
+    return args 
 
-checkpoint = train(X_test,Y_test,model,optimizer,loss_f,epochs_done,200)
-save_nn(checkpoint)
+def main(): 
+
+    args = get_arguments()
+        
+    #number of markers 
+    nb_in = 1
+    nb_out = 1
+
+    #Training parameters
+    #batch_size = 16
+    lr = 0.01 # Karpathy constant 3e-4
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = SimpleNN(nb_in,nb_out).to(device)
+    optimizer = optim.Adam(model.parameters(), lr = lr)
+    loss_f = nn.MSELoss(reduction = "sum")
+
+    # Bash arguments
+    if args.m:
+        path = args.m
+        model, optimizer, epochs_done = load_nn(model,optimizer,path)
+    else:
+        epochs_done = 0
+    
+    if args.ep:
+        n_epochs = int(args.ep)
+    else:
+        n_epochs = 50
+
+    if args.p:
+        print("Test")
+
+    
+
+    checkpoint = train(X_test,Y_test,model,optimizer,loss_f,epochs_done,n_epochs)
+    save_nn(checkpoint)
+
+
+if (__name__== "__main__"):
+    main()
