@@ -17,7 +17,7 @@ import tqdm
 import NN_model_trainer as mod
 
 nb_in, nb_out = 1, 1
-lr = 0.01
+lr = 0.1
 
 path_trained_models = Path('./scripts/NN/nn_checkpoints/')
 path_file =  mod.most_trained_path(path_trained_models)

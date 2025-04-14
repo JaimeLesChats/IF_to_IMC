@@ -132,7 +132,7 @@ def main():
 
     #Training parameters
     #batch_size = 16
-    lr = 0.05 # Karpathy constant 3e-4
+    lr = 0.2 # Karpathy constant 3e-4
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = SimpleNN(nb_in,nb_out).to(device)
@@ -160,6 +160,6 @@ def main():
     
     checkpoint = train(X_test,Y_test,model,optimizer,loss_f,epochs_done,n_epochs)
     save_nn(checkpoint)
-    
+
 if (__name__== "__main__"):
     main()
