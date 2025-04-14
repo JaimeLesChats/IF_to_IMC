@@ -5,12 +5,12 @@ import seaborn as sns
 import os
 from pathlib import Path
 import argparse
+import re
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as tf
-import timm
 from torch.utils.data import Dataset, DataLoader
 import tqdm
 
@@ -64,12 +64,12 @@ def create_checkpoint(model, optimizer, epochs):
      return checkpoint
 
 def save_nn(checkpoint):
-    directory = './nn_checkpoints/'
+    directory = './scripts/NN/nn_checkpoints/'
 
     if not os.path.exists(directory):
             os.makedirs(directory)
 
-    nn_basename = 'nn_' + str(checkpoint['epochs']) + 'epochs.pth'
+    nn_basename = str(checkpoint['epochs']) + '_epochs.pth'
     nn_path = directory + nn_basename
 
     torch.save(checkpoint,nn_path)
@@ -103,12 +103,19 @@ def train(X_train,Y_train,model, optimizer, loss_f, epochs_done, epochs = 50,):
     checkpoint = create_checkpoint(model,optimizer,epochs_done+epochs)
     return checkpoint
 
+def most_trained_path(directory):
+    max_epoch = 0
+    for filename in os.listdir(directory):
+        epochs = int(re.split(r'_',filename)[0])
+        max_epoch = max(max_epoch,epochs)
+    return directory / Path(str(max_epoch) + '_epochs.pth')
+
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="Process IF CSV files to identify each markers")
-    parser.add_argument('--m', type = str, help = "Fichier contenant le model pré-entrainé")
+    parser.add_argument('--file', type = str, help = "Fichier contenant le model pré-entrainé")
     parser.add_argument('--ep', type = str, help = "Nombre d'époques")
-    parser.add_argument('-p', action= 'store_true', help = "test")
+    parser.add_argument('-n', action= 'store_true', help = "create a new model")
 
     args = parser.parse_args()
 
@@ -131,23 +138,25 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr = lr)
     loss_f = nn.MSELoss(reduction = "sum")
 
+    path_trained_models = Path('./scripts/NN/nn_checkpoints/')
+
     # Bash arguments
-    if args.m:
-        path = args.m
-        model, optimizer, epochs_done = load_nn(model,optimizer,path)
-    else:
+    if args.n:
         epochs_done = 0
+    else:
+        if args.file:
+            path_file = path_trained_models + args.file
+            model, optimizer, epochs_done = load_nn(model,optimizer,path_file)
+        else:
+             path_file = most_trained_path(path_trained_models)
+             model, optimizer, epochs_done = load_nn(model,optimizer,path_file)
     
     if args.ep:
         n_epochs = int(args.ep)
     else:
         n_epochs = 50
 
-    if args.p:
-        print("Test")
-
     
-
     checkpoint = train(X_test,Y_test,model,optimizer,loss_f,epochs_done,n_epochs)
     save_nn(checkpoint)
 
