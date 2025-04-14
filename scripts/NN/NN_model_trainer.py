@@ -160,7 +160,6 @@ def main():
     
     checkpoint = train(X_test,Y_test,model,optimizer,loss_f,epochs_done,n_epochs)
     save_nn(checkpoint)
-
-
+    
 if (__name__== "__main__"):
     main()
