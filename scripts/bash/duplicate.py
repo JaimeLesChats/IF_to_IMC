@@ -50,9 +50,7 @@ def create_csv():
     df.to_csv("./csv.csv",index = False)
 
     
-        
-
-
+    
 remove()
 filter()
 create_csv()

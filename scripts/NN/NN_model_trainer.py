@@ -6,6 +6,7 @@ from pathlib import Path
 import argparse
 import re
 import csv
+import yaml
 
 import torch
 import torch.nn as nn
@@ -15,6 +16,16 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import tqdm
 
 import NN_dataset
+
+# Get configuration file
+
+def get_config():
+    with open("./scripts/config.yaml",'r') as f:
+        config = yaml.safe_load(f)
+    return config
+
+
+config = get_config()
 
 # NEURAL NETWORK
 
@@ -55,8 +66,9 @@ def create_checkpoint(model, optimizer, epochs, validation_loss= None, training_
      
      return checkpoint
 
+
 def save_nn(checkpoint):
-    directory = './data/nn_data/nn_checkpoints/'
+    directory = config['directory_trained_models']
 
     if not os.path.exists(directory):
             os.makedirs(directory)
@@ -65,6 +77,7 @@ def save_nn(checkpoint):
     nn_path = directory + nn_basename
 
     torch.save(checkpoint,nn_path)
+
 
 def load_nn(nn_path, device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     checkpoint = torch.load(nn_path)
@@ -80,6 +93,7 @@ def load_nn(nn_path, device = torch.device("cuda" if torch.cuda.is_available() e
 
     return model, optimizer, checkpoint['epochs']
 
+
 def get_validation_loss(model,X_validation,Y_validation,loss_f = nn.MSELoss(reduction = "sum")):
     model.eval()
     with torch.no_grad():
@@ -87,10 +101,11 @@ def get_validation_loss(model,X_validation,Y_validation,loss_f = nn.MSELoss(redu
         validation_loss = loss_f(Y_pred,Y_validation)
         return validation_loss
 
+
 def train(train_loader,val_loader,model,optimizer, epochs_done, epochs = 50, loss_f = nn.MSELoss(reduction = "sum")):
 
     loop = tqdm.tqdm(range(epochs_done+1,epochs_done+epochs+1),
-                     ncols=100, colour='green', desc='Training ... ', )
+                     ncols=100, colour='green', desc='Training from epoch {}'.format(epochs_done), )
 
     for epoch in loop:
 
@@ -118,6 +133,7 @@ def train(train_loader,val_loader,model,optimizer, epochs_done, epochs = 50, los
     checkpoint = create_checkpoint(model,optimizer,epochs_done+epochs,training_loss=training_loss, validation_loss = validation_loss)
     return checkpoint
 
+
 def most_trained_path(directory):
     max_epoch = 0
     for filename in os.listdir(directory):
@@ -125,8 +141,9 @@ def most_trained_path(directory):
         max_epoch = max(max_epoch,epochs)
     return directory / Path(str(max_epoch) + '_epochs.pth')
 
+
 def add_checkpoint_loss(epoch, training_loss, validation_loss):
-    with open("./data/nn_data/training_log.csv", "a", newline="") as f:
+    with open(config['path_training_logs'], "a", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([epoch,float(training_loss), float(validation_loss)])
 
@@ -141,6 +158,7 @@ def get_arguments():
 
     return args 
 
+
 def main(): 
 
     args = get_arguments()
@@ -151,19 +169,15 @@ def main():
 
     # Bash arguments
     if args.n:
-        #Training parameters
-        nb_in = 1
-        nb_out = 1
-        lr = 0.01 # Karpathy constant 3e-4
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        model = SimpleNN(nb_in,nb_out).to(device)
-        optimizer = optim.Adam(model.parameters(), lr = lr)
+        model = SimpleNN(config['input_dim'],config['output_dim']).to(device)
+        optimizer = optim.Adam(model.parameters(), lr = config['learning_rate'])
         epochs_done = 0
 
     else:
-        path_trained_models = Path('./data/nn_data/nn_checkpoints/')
+        path_trained_models = Path(config['directory_trained_models'])
 
         if args.file:
             path_file = path_trained_models + args.file
