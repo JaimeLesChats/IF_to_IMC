@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 from pathlib import Path
 import argparse
 import re
+import csv
 
 import torch
 import torch.nn as nn
@@ -13,6 +13,8 @@ import torch.optim as optim
 import torchvision.transforms as tf
 from torch.utils.data import Dataset, DataLoader, random_split
 import tqdm
+
+import NN_dataset
 
 # NEURAL NETWORK
 
@@ -54,7 +56,7 @@ def create_checkpoint(model, optimizer, epochs, validation_loss= None, training_
      return checkpoint
 
 def save_nn(checkpoint):
-    directory = './scripts/NN/nn_checkpoints/'
+    directory = './data/nn_data/nn_checkpoints/'
 
     if not os.path.exists(directory):
             os.makedirs(directory)
@@ -78,26 +80,42 @@ def load_nn(nn_path, device = torch.device("cuda" if torch.cuda.is_available() e
 
     return model, optimizer, checkpoint['epochs']
 
-def train(X_train,Y_train,X_validation,Y_validation,model, optimizer, epochs_done, epochs = 50, loss_f = nn.MSELoss(reduction = "sum")):
+def get_validation_loss(model,X_validation,Y_validation,loss_f = nn.MSELoss(reduction = "sum")):
+    model.eval()
+    with torch.no_grad():
+        Y_pred = model(X_validation)
+        validation_loss = loss_f(Y_pred,Y_validation)
+        return validation_loss
+
+def train(train_loader,val_loader,model,optimizer, epochs_done, epochs = 50, loss_f = nn.MSELoss(reduction = "sum")):
 
     loop = tqdm.tqdm(range(epochs_done+1,epochs_done+epochs+1),
                      ncols=100, colour='green', desc='Training ... ', )
 
     for epoch in loop:
+
+        # Training
         model.train()
-        predicted_Y= model(X_train)
-        predicted_validation_Y = model(X_validation)
+        for inputs, labels in train_loader:
+            #Forward
+            outputs = model(inputs)
+            training_loss = loss_f(outputs,labels)
 
-        training_loss = loss_f(predicted_Y,Y_train)
-        validation_loss = loss_f(predicted_validation_Y,Y_validation)
-
-        optimizer.zero_grad()
-        training_loss.backward()
-        optimizer.step()
-
+            #Backward
+            optimizer.zero_grad()
+            training_loss.backward()
+            optimizer.step()
+        
+        #Validation
+        model.eval()
+        with torch.no_grad():
+            for inputs,labels in val_loader:
+                outputs = model(inputs)
+                validation_loss = loss_f(outputs,labels)
+                
         loop.set_postfix(training_loss=training_loss.item())
     
-    checkpoint = create_checkpoint(model,optimizer,epochs_done+epochs,training_loss=training_loss, validation_loss=validation_loss)
+    checkpoint = create_checkpoint(model,optimizer,epochs_done+epochs,training_loss=training_loss, validation_loss = validation_loss)
     return checkpoint
 
 def most_trained_path(directory):
@@ -108,8 +126,9 @@ def most_trained_path(directory):
     return directory / Path(str(max_epoch) + '_epochs.pth')
 
 def add_checkpoint_loss(epoch, training_loss, validation_loss):
-    with open("./scripts/NN/training_log.csv", "a") as f:
-        f.write(f"{epoch},{training_loss},{validation_loss}")
+    with open("./data/nn_data/training_log.csv", "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([epoch,float(training_loss), float(validation_loss)])
 
 
 def get_arguments():
@@ -122,47 +141,17 @@ def get_arguments():
 
     return args 
 
-#Dataset
-
-X_train = torch.linspace(-10, 10, 1000).view(-1, 1)
-X_validation = torch.linspace(-10, 10, 1000).view(-1, 1)
-Y_train = X_train * 2
-Y_validation = X_validation * 2
-
-#X= torch.linspace(-10, 10, 1000).view(-1, 1)
-#train_proportion = 0.8
-
-#train_size = int(0.8*len(X))
-#validation_size = len(X) - train_size
-
-#X_train, X_validation = random_split(X, [train_size,validation_size])
-#X_train, X_validation = torch.tensor(X_train), torch.tensor(X_validation)
-#Y_train, Y_validation = random_split(X*2, [train_size,validation_size])
-#Y_train, Y_validation = torch.tensor(Y_train), torch.tensor(Y_validation)
-
-class MarkersDataset(Dataset):
-    def __init__(self):
-        self.X = torch.tensor(X_train)
-        self.y = torch.tensor(Y_train)
-        #self.X = torch.tensor(markers_df.to_numpy())
-        #self.y = torch.tensor(clusters_df.to_numpy())
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-
 def main(): 
 
     args = get_arguments()
 
     loss_f = loss_f = nn.MSELoss(reduction = "sum")
 
+    train_loader, val_loader = NN_dataset.get_dataset()
+
     # Bash arguments
     if args.n:
         #Training parameters
-        #batch_size = 16
         nb_in = 1
         nb_out = 1
         lr = 0.01 # Karpathy constant 3e-4
@@ -174,7 +163,7 @@ def main():
         epochs_done = 0
 
     else:
-        path_trained_models = Path('./scripts/NN/nn_checkpoints/')
+        path_trained_models = Path('./data/nn_data/nn_checkpoints/')
 
         if args.file:
             path_file = path_trained_models + args.file
@@ -186,10 +175,10 @@ def main():
     if args.ep:
         n_epochs = int(args.ep)
     else:
-        n_epochs = 50
+        n_epochs = 50 # Default number of epochs
 
     
-    checkpoint = train(X_train,Y_train,X_validation,Y_validation,model,optimizer,epochs_done,n_epochs,loss_f=loss_f)
+    checkpoint = train(train_loader,val_loader,model,optimizer,epochs_done,n_epochs,loss_f=loss_f)
     save_nn(checkpoint)
     add_checkpoint_loss(checkpoint['epochs'],checkpoint['training_loss'],checkpoint['validation_loss'])
 

@@ -1,0 +1,12 @@
+
+
+root_directory: /home/matthieu.bernard/Documents/IF_to_IMC/ # write path to IF_to_IMC folder
+
+# Neural Network parameters
+input_dim: 1
+output_dim: 1
+batch_size: 32
+learning_rate: 0.01
+train_val_ratio: 0.8
+
+path_trained_models: 'data/nn_data/nn_checkpoints/'

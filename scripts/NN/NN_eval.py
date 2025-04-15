@@ -1,29 +1,45 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 from pathlib import Path
 import argparse
 import re
+import matplotlib.pyplot as plt
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision.transforms as tf
-from torch.utils.data import Dataset, DataLoader
-import tqdm
+
 
 import NN_model_trainer as mod
 
-path_trained_models = Path('./scripts/NN/nn_checkpoints/')
-path_file =  mod.most_trained_path(path_trained_models)
+def evaluate(trained_model_path):
+    
+    model, _,_ = mod.load_nn(trained_model_path)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.eval()
+    x_test = torch.tensor([[100.0], [-50.0], [1000.0]])
+    y_test_pred = model(x_test)
+    print(y_test_pred)
 
-model, _,_ = mod.load_nn(path_file)
+def graph():
+    df = pd.read_csv('./data/nn_data/training_log.csv')
+    epochs = df.iloc[:,0]
+    train_loss = df.iloc[:,1]
+    val_loss = df.iloc[:,2]
 
-model.eval()
-x_test = torch.tensor([[100.0], [-50.0], [1000.0]])
-y_test_pred = model(x_test)
-print(y_test_pred)
+    plt.plot(epochs, train_loss, label = 'train_loss', color = 'blue')
+    plt.plot(epochs, val_loss, label = 'val_loss', color = 'red')
+
+    plt.show()
+
+
+def get_best_model_path():
+
+    df = pd.read_csv('./data/nn_data/training_log.csv')
+    min_row = df.iloc[df.iloc[:,2].idxmin()]
+    best_epoch = min_row[0]
+
+    return Path('./data/nn_data/nn_checkpoints/' + str(int(best_epoch)) + '_epochs.pth')
+
+evaluate(get_best_model_path())
+
