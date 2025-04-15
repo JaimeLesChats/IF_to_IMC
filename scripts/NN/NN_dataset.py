@@ -8,6 +8,13 @@ import torch.optim as optim
 import torchvision.transforms as tf
 from torch.utils.data import Dataset, DataLoader, random_split
 
+def get_config():
+    with open("./scripts/config.yaml",'r') as f:
+        config = yaml.safe_load(f)
+    return config
+
+
+config = get_config()
 
 #Dataset
 class Dataset(Dataset):
@@ -27,10 +34,12 @@ def get_dataset():
 
     dataset = Dataset()
   
-    train_ratio = 0.8
+    train_ratio = config['train_val_ratio']
+    batch_size = config['batch_size']
+
     train_size = int(train_ratio*len(dataset))
     val_size = len(dataset) - train_size
-    batch_size = 32
+    
 
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle = True)
