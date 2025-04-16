@@ -55,7 +55,17 @@ class SimpleNN(nn.Module):
 # FUNCTIONS
 
 def create_checkpoint(model, optimizer, epochs, validation_loss= None, training_loss = None):
-     checkpoint = {'epochs' : epochs,
+    """
+    Return a checkpoint in the training of the specified model
+
+    - model : the neural network model
+    - optimizer : the optimizer used
+    - epochs : the total number of training epochs
+    - validation_loss : current validation loss
+    - training_loss : current training loss
+
+    """
+    checkpoint = {'epochs' : epochs,
                    'model_state_dict' : model.state_dict(),
                    'optimizer_state_dict' : optimizer.state_dict(),
                    'validation_loss' : validation_loss,
@@ -64,10 +74,16 @@ def create_checkpoint(model, optimizer, epochs, validation_loss= None, training_
                    'input_dim' : model.input_dim,
                    'output_dim' : model.output_dim}
      
-     return checkpoint
+    return checkpoint
 
 
 def save_nn(checkpoint):
+    """
+    Save in a .pth file the neural network model as a checkpoint
+    
+    - checkpoint : training checkpoint achieved by the model
+    
+    """
     directory = config['directory_trained_models']
 
     if not os.path.exists(directory):
@@ -80,6 +96,13 @@ def save_nn(checkpoint):
 
 
 def load_nn(nn_path, device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+    """
+    Load the model, optimizer and the number of training epochs according to a saved model checkpoint
+    
+    - nn_path : path to the file of the saved checkpoint
+    - device : device used to train the model
+    
+    """
     checkpoint = torch.load(nn_path)
 
     input_dim = checkpoint['input_dim']
@@ -94,15 +117,23 @@ def load_nn(nn_path, device = torch.device("cuda" if torch.cuda.is_available() e
     return model, optimizer, checkpoint['epochs']
 
 
-def get_validation_loss(model,X_validation,Y_validation,loss_f = nn.MSELoss(reduction = "sum")):
-    model.eval()
-    with torch.no_grad():
-        Y_pred = model(X_validation)
-        validation_loss = loss_f(Y_pred,Y_validation)
-        return validation_loss
-
-
 def train(train_loader,val_loader,model,optimizer, epochs_done, epochs = 50, loss_f = nn.MSELoss(reduction = "sum")):
+    """
+    Trains a model according to some data
+    
+    - train_loader : training data, batch-sized
+    - val_loader : validation data, batch-sized
+    - model : neural network model
+    - optimizer : optimizer
+    - epochs_done : number of epochs already done before this training session
+    - epochs : number of epochs of this training session
+    - loss_f : loss function used for back-propagation
+
+    Returns
+
+    - checkpoint : checkpoint of the model after [epochs_done + epochs] epochs
+
+    """
 
     loop = tqdm.tqdm(range(epochs_done+1,epochs_done+epochs+1),
                      ncols=100, colour='green', desc='Training from epoch {}'.format(epochs_done), )
@@ -131,10 +162,18 @@ def train(train_loader,val_loader,model,optimizer, epochs_done, epochs = 50, los
         loop.set_postfix(training_loss=training_loss.item())
     
     checkpoint = create_checkpoint(model,optimizer,epochs_done+epochs,training_loss=training_loss, validation_loss = validation_loss)
+
     return checkpoint
 
 
 def most_trained_path(directory):
+    """
+    Returns the most trained model of a directory
+    
+    - directory : directory where all trained models are
+    
+    """
+
     max_epoch = 0
     for filename in os.listdir(directory):
         epochs = int(re.split(r'_',filename)[0])
@@ -143,12 +182,26 @@ def most_trained_path(directory):
 
 
 def add_checkpoint_loss(epoch, training_loss, validation_loss):
+    """
+    Writes in a csv files the losses of a model corresponding to the epoch of training
+    
+    - epoch : epochs done so far
+    - training_loss : training loss
+    - validation_loss : validation loss
+    
+    """
+
     with open(config['path_training_logs'], "a", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([epoch,float(training_loss), float(validation_loss)])
 
 
 def get_arguments():
+    """
+    Get arguments when launching the python script
+    
+    """
+    
     parser = argparse.ArgumentParser(description="Process IF CSV files to identify each markers")
     parser.add_argument('--file', type = str, help = "Fichier contenant le model pré-entrainé")
     parser.add_argument('--ep', type = str, help = "Nombre d'époques")
