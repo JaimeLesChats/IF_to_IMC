@@ -19,6 +19,7 @@ runPlugin('qupath.imagej.detect.cells.WatershedCellDetection', '''
   "minAreaMicrons": 5.0,
   "maxAreaMicrons": 400.0,
   "threshold": 2.0,
+  "cellExpansionMicrons":0.001,
   "watershedPostProcess": true,
   "includeNuclei": false,
   "smoothBoundaries": true,
