@@ -1,21 +1,26 @@
+
+
 // Load image and detect cells, then export measurements
 
 setImageType('FLUORESCENCE') // or BRIGHTFIELD depending on your data
 selectAnnotations()
 
+if (getAnnotationObjects().isEmpty()) {
+    createSelectAllObject(true)
+}
+
 // Cell detection (adjust parameters)
 runPlugin('qupath.imagej.detect.cells.WatershedCellDetection', '''
 {
-  "detectionImage": "DAPI",
   "requestedPixelSizeMicrons": 0.5,
   "backgroundRadiusMicrons": 8.0,
   "medianRadiusMicrons": 0.0,
-  "sigmaMicrons": 1.5,
-  "minAreaMicrons": 10.0,
+  "sigmaMicrons": 2,
+  "minAreaMicrons": 5.0,
   "maxAreaMicrons": 400.0,
-  "threshold": 100.0,
+  "threshold": 2.0,
   "watershedPostProcess": true,
-  "includeNuclei": true,
+  "includeNuclei": false,
   "smoothBoundaries": true,
   "makeMeasurements": true
 }
