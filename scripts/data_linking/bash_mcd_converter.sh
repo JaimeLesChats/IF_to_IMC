@@ -1,12 +1,11 @@
 #!/bin/bash
 
-input_directory='/home/matthieu.bernard/Documents/IF_to_IMC/data/raw/imc_data'
-output_directory='/home/matthieu.bernard/Documents/IF_to_IMC/data/raw/imc_data'
+input_dir=$(yq '.data_linking.input_dir_raw_mcd' ./scripts/config.yaml)
+output_dir=$(yq '.data_linking.output_dir_raw_tiff' ./scripts/config.yaml)
 
-
-for file in "$input_directory"/*.mcd; do
+for file in "$input_dir"/*.mcd; do
     echo  "File $file"    
-    python3 ./scripts/data_linking/mcd_img_converter.py --file $file --out $output_directory -c Ir191
+    python3 ./scripts/data_linking/mcd_img_converter.py --file $file --out $output_dir -c Ir191
 done
 
 
