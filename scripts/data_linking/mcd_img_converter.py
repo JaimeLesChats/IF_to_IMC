@@ -3,6 +3,10 @@ import os
 from pathlib import Path
 import re
 import argparse
+import matplotlib.pyplot as plt
+import tifffile
+import numpy as np
+
 
 
 def get_arguments():
@@ -15,7 +19,8 @@ def get_arguments():
     parser.add_argument('--file', type = str, help = "Path to the .mcd file")
     parser.add_argument('--out', type = str, help = "Directory where the .ome.tiff file will be saved")
     parser.add_argument('-c', type = str, help = "Select the channels to use by imctools")
-    parser.add_argument('-a', action= 'store_true', help = "Do an image for each marker")
+    parser.add_argument('--am', action= 'store_true', help = "Do an image for each marker")
+    parser.add_argument('--ar', action= 'store_true', help = "Do an image for each roi, else the first roi")
 
     args = parser.parse_args()
 
@@ -40,7 +45,8 @@ def get_patient_name(input_file):
     return basename[second_last_dash+1:last_underscore]
 
 
-def convert_mcd_to_tiff(input_file, output_directory, selected_channel = None, all_channels = False, ROI=1):
+def convert_mcd_to_tiff(input_file, output_directory, selected_channel = None, all_channels = False, all_rois = False):
+    print('############# Conversion ############\n\nInitializing ...')
     patient_id = get_patient_name(input_file)
     #patient_id = os.path.splitext(os.path.basename(input_file))[0]
 
@@ -51,14 +57,24 @@ def convert_mcd_to_tiff(input_file, output_directory, selected_channel = None, a
     session = parser.session
     ids = parser.session.acquisition_ids
     for id in ids:
+        print(f'ROI {id} \n')
         ac_data = parser.get_acquisition_data(id)
+        #plt.imshow(ac_data.get_image_by_name('Ir191'))
+        #plt.show()
         if all_channels:
             for channel in ac_data.channel_names:
-                output_path = output_directory + '/' + patient_id + '_' + channel + '_' + str(id) + '.ome.tiff'
-                ac_data.save_ome_tiff(output_path,names = [channel])
+                image = ac_data.get_image_by_name(channel)
+                
+                output_path = output_directory + '/' + patient_id  + '_' + channel + '_' + str(id) + '.tiff'
+                tifffile.imwrite(output_path, image.astype(np.uint16), photometric='minisblack')
+                print("{} channel converted !".format(channel))
         else:
-            output_path = output_directory + '/' + patient_id  + '_' + selected_channel + '_' + str(id) + '.ome.tiff'
-            ac_data.save_ome_tiff(output_path,names = [selected_channel])
+            image = ac_data.get_image_by_name(selected_channel)
+
+            output_path = output_directory + '/' + patient_id  + '_' + selected_channel + '_' + str(id) + '.tiff'
+            tifffile.imwrite(output_path, image.astype(np.uint16), photometric='minisblack')
+        if not(all_rois):
+            break
 
 
 # save multiple standard TIFF files in a folder
@@ -73,7 +89,7 @@ def main():
     # Bash arguments
 
     if args.file and args.out:
-        convert_mcd_to_tiff(args.file,args.out,selected_channel=args.c,all_channels=args.a)
+        convert_mcd_to_tiff(args.file,args.out,selected_channel=args.c,all_channels=args.am, all_rois = args.ar)
 
 if (__name__== "__main__"):
     main()

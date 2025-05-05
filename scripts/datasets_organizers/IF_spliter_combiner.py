@@ -83,8 +83,10 @@ def process_csv(patient_files, output_dir):
         merged_df = merge_df_from_files(patient_files[patient])
         print("[MERGE] Patient {}: files merged".format(patient))
 
-        split_merged_df = split_df(merged_df)
-        print("[SPLIT] Patient {}: file split".format(patient))
+        split_merged_df = merged_df
+        
+        #split_merged_df = split_df(merged_df)
+        #print("[SPLIT] Patient {}: file split".format(patient))
 
 
         base_name = patient + "_merged_split.csv"

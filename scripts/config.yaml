@@ -9,6 +9,7 @@ root_directory: /home/matthieu.bernard/Documents/IF_to_IMC/ # write path to IF_t
 data_linking:
   input_dir_raw_mcd: '/home/matthieu.bernard/Documents/IF_to_IMC/data/raw/imc_data'
   output_dir_raw_tiff: '/home/matthieu.bernard/Documents/IF_to_IMC/data/raw/imc_data'
+  patient: '15T011146-16' # if we only study 1 patient
 
 # Neural Network parameters
 input_dim: 1
