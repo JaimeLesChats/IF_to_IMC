@@ -8,12 +8,13 @@ data_linking:
   mcd_converter:
     input_dir_raw_mcd: '/home/matthieu.bernard/Documents/IF_to_IMC/data/raw/imc_data/mcd_files'
     output_dir_raw_tiff: '/home/matthieu.bernard/Documents/IF_to_IMC/data/raw/imc_data/patients'
-    all_patients: true
+    flush: true
+    all_patients: false
     patient: '15T011146-16' # if all_patients: false
     all_rois: true # if false, it will make a file for only the first roi
-    markers_combo: true
-    all_markers: false
-    markers_list: 'Nd148,Er168' # will make different files for each marker / ex : 'Ir191,Ir193'
+    markers_combo: false
+    all_markers: true
+    markers_list: 'Ir191' # will make different files for each marker / ex : 'Ir191,Ir193'
 
 # Neural Network parameters
 input_dim: 1

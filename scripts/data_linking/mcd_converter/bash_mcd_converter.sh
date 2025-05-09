@@ -1,8 +1,14 @@
 #!/bin/bash
 
 input_dir=$(yq '.data_linking.mcd_converter.input_dir_raw_mcd' ./scripts/config.yaml)
+output_dir=$(yq '.data_linking.mcd_converter.output_dir_raw_tiff' ./scripts/config.yaml)
 patient=$(yq '.data_linking.mcd_converter.patient' ./scripts/config.yaml)
 all_patients=$(yq '.data_linking.mcd_converter.all_patients' ./scripts/config.yaml)
+flush=$(yq '.data_linking.mcd_converter.flush' ./scripts/config.yaml)
+
+if [ "$flush" = "true" ]; then
+    rm -r "$output_dir"
+fi
 
 if [ "$all_patients" = "true" ]; then
     for file in "$input_dir"/*.mcd; do   
