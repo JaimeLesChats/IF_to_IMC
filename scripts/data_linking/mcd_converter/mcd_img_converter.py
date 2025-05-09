@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import tifffile
 import numpy as np
 import yaml
+import sys
 
 '''
 data_linking:
@@ -38,10 +39,6 @@ def get_arguments():
     
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('--file', type = str, help = "Path to the .mcd file")
-    parser.add_argument('--out', type = str, help = "Directory where the .ome.tiff file will be saved")
-    parser.add_argument('-c', type = str, help = "Select the channels to use by imctools")
-    parser.add_argument('--am', action= 'store_true', help = "Do an image for each marker")
-    parser.add_argument('--ar', action= 'store_true', help = "Do an image for each roi, else the first roi")
 
     args = parser.parse_args()
 
@@ -49,7 +46,8 @@ def get_arguments():
 
 
 def get_output_path(patient, roi, combo):
-    base_imc_dir = Path('./data/raw/imc_data')
+
+    base_imc_dir = Path(config['data_linking']['mcd_converter']['output_dir_raw_tiff'])
 
     patient_dir = base_imc_dir.joinpath(patient)
     roi_dir = patient_dir.joinpath('roi_' + str(roi))
@@ -79,7 +77,6 @@ def get_patient_name(input_file):
 
 
 def convert_mcd_to_tiff(input_file):
-    print('############# Conversion ############\n\nInitializing ...')
 
     all_markers = config['data_linking']['mcd_converter']['all_markers']
     markers_combo = config['data_linking']['mcd_converter']['markers_combo']
@@ -87,55 +84,89 @@ def convert_mcd_to_tiff(input_file):
     all_rois = config['data_linking']['mcd_converter']['all_rois']
 
     patient_id = get_patient_name(input_file)
-    #patient_id = os.path.splitext(os.path.basename(input_file))[0]
+    #patient_id = os.path.splitext(os.path.basename(input_file))[0] 
+
+    sys.stdout.write(f'\n[Patient : {patient_id}] File Acquisition...')
 
     parser = McdParser(input_file)
     session = parser.session
     rois = session.acquisition_ids
 
+    sys.stdout.write('\r')
+    sys.stdout.flush()
+    sys.stdout.write(f'[Patient : {patient_id}] File successfully imported !\n')
+
     for roi in rois:
-        print(f'ROI {roi} \n')
+        # the exact output you're looking for:
+
+        sys.stdout.write(f'[Patient : {patient_id}][ROI : {roi}] Acquisition ...')
 
         ac_data = parser.get_acquisition_data(roi)
-        print(ac_data.image_data.shape) 
-        data = ac_data.get_image_by_name('Ir191')
-        print(data.shape)
 
         if all_markers:
             channels_selected = ac_data.channel_names
         else:
             channels_selected = re.split(r',', markers_list)
+
             if all(item in ac_data.channel_names for item in channels_selected):
-                print('All channels are available !')
+                sys.stdout.write('\r')
+                sys.stdout.flush()
+                sys.stdout.write(f'[Patient : {patient_id}][ROI : {roi}] All channels available !')
             else:
-                print('[!] Wrong channel names !\nCheck config file for potential mistakes...')
+                sys.stdout.write('\r')
+                sys.stdout.flush()
+                sys.stdout.write(f'[Patient : {patient_id}][ROI : {roi}] ERROR ! Wrong channels !\n')
+                parser.close()
+                exit()
 
         if markers_combo:
-            combo_name = '_'.join(channels_selected)
-            file_name = patient_id  + '_' + combo_name + '_' + str(roi) + '.tiff'
+            
+            sys.stdout.write('\r')
+            sys.stdout.flush()
+            sys.stdout.write(f'[Patient : {patient_id}][ROI : {roi}] Converting combo of {len(channels_selected)} channels...')
 
+            if all_markers:
+                combo_name = 'all_channels'
+            else:
+                combo_name = '_'.join(channels_selected)
+            file_name = patient_id  + '_' + combo_name + '_' + str(roi) + '.ome.tiff'
             output_path = get_output_path(patient_id,roi,markers_combo).joinpath(file_name)
-            ac_data.save_tiff(output_path, names=channels_selected, compression=0)
+
+            img_stack = np.stack([ac_data.get_image_by_name(ch) for ch in channels_selected], axis=0)  # shape: (selected_channels, H, W)
+
+            # Convert to (1, 2, 1, H, W) => (T, C, Z, Y, X) for OME-TIFF
+            img_stack = img_stack[np.newaxis, :, np.newaxis, :, :]
+
+            # Set axes and channel names
+            metadata = {'axes': 'TCZYX','Channel': {'Name': channels_selected}}
+
+            # Save as OME-TIFF
+            tifffile.imwrite(output_path,img_stack.astype(np.float32),metadata=metadata,ome=True)
+
+            sys.stdout.write('\r')
+            sys.stdout.flush()
+            sys.stdout.write(f'[Patient : {patient_id}][ROI : {roi}] DONE ! Combo of {len(channels_selected)} channels converted !\n')
+
         else:
-            for channel in channels_selected:
-                #channel = marker
+            for i,channel in enumerate(channels_selected):
                 image = ac_data.get_image_by_name(channel)
                 file_name = patient_id  + '_' + channel + '_' + str(roi) + '.tiff'
 
                 output_path = get_output_path(patient_id,roi,markers_combo).joinpath(file_name)
                 tifffile.imwrite(output_path, image.astype(np.uint16), photometric='minisblack')
-                print("{} channel converted !".format(channel))
+                sys.stdout.write('\r')
+                sys.stdout.flush()
+                sys.stdout.write(f'[Patient : {patient_id}][ROI : {roi}] {i+1}/{len(channels_selected)} channels converted ...')
+
+            sys.stdout.write('\r')
+            sys.stdout.flush()
+            sys.stdout.write(f'[Patient : {patient_id}][ROI : {roi}] DONE ! {len(channels_selected)} channels converted !\n')
 
         if not(all_rois):
             # stop if we didn't want all rois
             break
         
     parser.close()
-
-
-# save multiple standard TIFF files in a folder
-#ac_data.save_tiffs("/home/anton/tiffs", compression=0, bigtiff=False)
-
 
 
 def main(): 
