@@ -1,9 +1,24 @@
-// Ensure an image is open
-def imageData = getCurrentImageData()
-if (imageData == null) {
-    print "No image open!"
-    return
+import qupath.lib.objects.PathAnnotationObject
+import qupath.lib.roi.RectangleROI
+import org.yaml.snakeyaml.Yaml
+
+Yaml parser = new Yaml()
+/*List example = parser.load(("../../config.yaml" as File).text)*/
+
+// Annotations
+
+double pixel_size = 0.226
+
+def roi_list = [[16686.59,5875,2589,1612]]
+
+for (r in roi_list) {
+    def roi = new RectangleROI((r[0]-r[2])/pixel_size, r[1]/pixel_size, r[2]/pixel_size, r[3]/pixel_size)
+
+    def annotation = PathObjects.createAnnotationObject(roi)
+    addObject(annotation)
+    selectObjects(annotation)
 }
+
 
 // Load the InstanSeg extension
 def instanseg = qupath.ext.instanseg.InstanSegRunner.getInstance()
